@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { PlusOutlined } from '@ant-design/icons';
 import { Modal, Upload, message } from 'antd';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -16,7 +16,7 @@ const getBase64 = (file) =>
 const UploadButton = (props) => {
 
     const [orgsList, setOrgsList] = useState([])
-    const[selectedOrgId,setSelectedOrgId]=useState("")
+    const[selectedOrgId, setSelectedOrgId]=useState({"name": "", "id":""})
 
     useEffect(() => {
         function getOrgs() {
@@ -70,7 +70,7 @@ const UploadButton = (props) => {
         const formData = new FormData()
         formData.append('uploaded_file', fileList[0].originFileObj, fileList[0].name);
         fetch(
-            `http://localhost:8000/organisations/${selectedOrgId}/files`,
+            `http://localhost:8000/organisations/${selectedOrgId["id"]}/files`,
             {
                 method: 'POST',
                 headers: {
@@ -85,19 +85,19 @@ const UploadButton = (props) => {
                 if (result.status === "success") {
                     props.getOrgFiles()
                     setFileList([])
-                    setSelectedOrgId("")
+                    setSelectedOrgId({"name": "", id:""})
                     message.success(result.message)
                 }
                 else {
                     setFileList([])
-                    setSelectedOrgId("")
+                    setSelectedOrgId({"name": "", id:""})
                     message.error(result.message)
                 }
             }
         ).catch(
             (error) => {
                 setFileList([])
-                setSelectedOrgId("")
+                setSelectedOrgId({"name": "", id:""})
                 message.success('File upload failed')
             }
         );
@@ -124,16 +124,17 @@ const UploadButton = (props) => {
                 <p>Allowed Limit 5MB</p>
             </div>
             <Autocomplete
+                disableClearable
                 style={{marginBottom: "10px"}}
                 options={orgsList}
                 getOptionLabel={(options)=>options.name}
                 renderInput={(params) => <TextField {...params} label="Organisation" />}
-                onChange={(event,value) => (setSelectedOrgId(value?.id))}
+                onChange={(event, value) => (setSelectedOrgId(value))}
+                value={selectedOrgId}
             />
             <Upload
-                
                 accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                disabled={!selectedOrgId}
+                disabled={!selectedOrgId["id"]}
                 customRequest={handleUpload}
                 onChange={handleChange}
                 listType="picture-circle"
