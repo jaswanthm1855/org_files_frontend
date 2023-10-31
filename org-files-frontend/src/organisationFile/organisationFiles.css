@@ -1,0 +1,13 @@
+.org-list-view {
+    align-self: self-start;
+    display: flex;
+    flex-direction: column;
+    .ant-select {
+        margin-bottom: 5px;
+    }
+}
+
+.main-div {
+    display: flex;
+    justify-content: space-around;
+}
