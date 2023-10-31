@@ -23,12 +23,11 @@ const OrganisationFiles = () => {
         ).then(
             (result) => {
                 setOrgFilesList(result['data']);
-                console.log("succes", result)
             }
         ).catch(
             (error) => {
-                console.log("errorroo")
-                console.log(error)
+                // console.log("errorroo")
+                // console.log(error)
             }
         );
     }

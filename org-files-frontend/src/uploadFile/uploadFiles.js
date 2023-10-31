@@ -3,6 +3,14 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Modal, Upload, message } from 'antd';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import './uploadFiles.css';
 
 const getBase64 = (file) =>
@@ -15,8 +23,11 @@ const getBase64 = (file) =>
 
 const UploadButton = (props) => {
 
-    const [orgsList, setOrgsList] = useState([])
-    const[selectedOrgId, setSelectedOrgId]=useState({"name": "", "id":""})
+    const [orgsList, setOrgsList] = useState()
+    const [selectedOrgId, setSelectedOrgId] = useState()
+    const [open, setOpen] = useState(false);
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
     useEffect(() => {
         function getOrgs() {
@@ -32,8 +43,8 @@ const UploadButton = (props) => {
                 }
             ).catch(
                 (error) => {
-                    console.log("errorroo")
-                    console.log(error)
+                    // console.log("errorroo")
+                    // console.log(error)
                 }
             );
         }
@@ -65,12 +76,12 @@ const UploadButton = (props) => {
         setFileList(newFileList);
     }
 
-    function handleUpload() {
+    function handleUpload(file, canReplaceFile = false) {
 
         const formData = new FormData()
         formData.append('uploaded_file', fileList[0].originFileObj, fileList[0].name);
         fetch(
-            `http://localhost:8000/organisations/${selectedOrgId["id"]}/files`,
+            `http://localhost:8000/organisations/${selectedOrgId}/files?can_replace_file=${canReplaceFile}`,
             {
                 method: 'POST',
                 headers: {
@@ -85,22 +96,25 @@ const UploadButton = (props) => {
                 if (result.status === "success") {
                     props.getOrgFiles()
                     setFileList([])
-                    setSelectedOrgId({"name": "", id:""})
                     message.success(result.message)
                 }
                 else {
-                    setFileList([])
-                    setSelectedOrgId({"name": "", id:""})
-                    message.error(result.message)
+                    if (result.message === "File already exists") {
+                        setOpen(true)
+                    }
+                    else {
+                        setFileList([])
+                        message.error(result.message)
+                    }
                 }
             }
         ).catch(
             (error) => {
                 setFileList([])
-                setSelectedOrgId({"name": "", id:""})
                 message.success('File upload failed')
             }
         );
+
     }
 
     const uploadButton = (
@@ -113,6 +127,40 @@ const UploadButton = (props) => {
             >
                 Upload
             </div>
+        </div>
+    );
+
+    const handleCloseWithReplace = () => {
+        setOpen(false)
+        handleUpload(fileList[0], true)
+        
+    }
+    const handleCloseWithoutReplace = () => {
+        setOpen(false)
+        setFileList([])
+        setSelectedOrgId()
+    }
+
+    const replaceFileDialog = (
+        <div>
+            <Dialog
+                fullScreen={fullScreen}
+                open={open}
+                // onClose={handleCloseWithoutReplace}
+                aria-labelledby="responsive-dialog-title"
+            >
+                <DialogTitle id="responsive-dialog-title">
+                File already exists, Do you want to replace it?
+                </DialogTitle>
+                <DialogActions>
+                    <Button onClick={handleCloseWithReplace} autoFocus>
+                        Yes
+                    </Button>
+                    <Button autoFocus onClick={handleCloseWithoutReplace}>
+                        No
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 
@@ -129,12 +177,12 @@ const UploadButton = (props) => {
                 options={orgsList}
                 getOptionLabel={(options)=>options.name}
                 renderInput={(params) => <TextField {...params} label="Organisation" />}
-                onChange={(event, value) => (setSelectedOrgId(value))}
+                onChange={(event, value) => (setSelectedOrgId(value['id']))}
                 value={selectedOrgId}
             />
             <Upload
                 accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                disabled={!selectedOrgId["id"]}
+                disabled={!selectedOrgId}
                 customRequest={handleUpload}
                 onChange={handleChange}
                 listType="picture-circle"
@@ -143,6 +191,7 @@ const UploadButton = (props) => {
             >
                 {fileList.length >= 1 ? null : uploadButton}
             </Upload>
+            { open ? replaceFileDialog : null }
             <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
                 <img
                     alt="example"
